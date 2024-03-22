@@ -1,5 +1,6 @@
 import random
 import math
+import copy
 
 SUMTOKEN = 6
 FLOWER_TYPES = 7
@@ -18,6 +19,12 @@ class PlayerInfo(object):
         self.scoreboard = []
         for i in range(FLOWER_TYPES):
             self.scoreboard.append(0)
+
+    def Clone(self):
+        info = PlayerInfo()
+        info.tokensleft = self.tokensleft
+        info.scoreboard = copy.deepcopy(self.scoreboard)
+        return info
 
     def Scoring(self, flowertype, count=1):
         self.scoreboard[flowertype] += count
@@ -40,10 +47,22 @@ class Token:
         self.pos = pos
         self.type = itype
 
+    def __copy__(self):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        result.__dict__.update(self.__dict__)
+        return result
+
 class Flower:
     def __init__(self, pos, itype):
         self.pos = pos
         self.type = itype
+
+    def __copy__(self):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        result.__dict__.update(self.__dict__)
+        return result
 
 class Pool(object):
 
@@ -51,6 +70,12 @@ class Pool(object):
         super().__init__()
         self.data = []
         self.tokendata = []
+
+    def Clone(self):
+        pool = Pool()
+        pool.data = copy.deepcopy(self.data)
+        pool.tokendata = copy.deepcopy(self.data)
+        return pool
 
     def TryAddToken(self, x, y, ttype):
         if self.IsConflict(x, y, TOKEN_WIDTH):
@@ -90,20 +115,25 @@ class Pool(object):
                 self.data.append(Flower([x, y], i))
 
 
-
-
 class Board(object):
     def __init__(self):
         super().__init__()
         self._Initiate()
 
-    def Initiate(self):
-        self._Initiate()
+    def Clone(self):
+        b = Board()
+        b.playerinfos = [self.playerinfos[0].Clone(), self.playerinfos[1].Clone()]
+        b.pool = self.pool.Clone()
+        return b
 
-    def _Initiate(self):
+    def Initiate(self):
+        self._Initiate(True)
+
+    def _Initiate(self, serve=False):
         self.playerinfos = [PlayerInfo(), PlayerInfo()]
         self.pool = Pool()
-        self.pool.Serve()
+        if serve:
+            self.pool.Serve()
 
     def UpdateScoreByTake(self, flowertype, playerindex):
         info = self.playerinfos[playerindex]
