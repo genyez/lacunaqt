@@ -59,15 +59,15 @@ class Pool(object):
         return False
 
     def Serve(self):
-        for i in range(FLOWER_COUNT):
-            for j in range(FLOWER_TYPES):
+        for i in range(FLOWER_TYPES):
+            for j in range(FLOWER_COUNT):
                 x = 0
                 y = 0
                 while self.IsConflict(x, y):
                     x = random.randrange(BOARD_WIDTH)
                     y = random.randrange(BOARD_WIDTH)
 
-                self.data.append(Flower([x, y], j))
+                self.data.append(Flower([x, y], i))
 
 
 

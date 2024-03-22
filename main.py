@@ -6,11 +6,13 @@ from PySide6.QtWidgets import QApplication, QFrame, QGraphicsScene, QGraphicsVie
 import sys
 from GameController import Game, MyScene, BOARD_WIDTH
 from PySide6.QtCore import Qt, QRectF
+import random
 
 class MainWindow(QFrame):
     def __init__(self):
         super().__init__()
         self._setupUI()
+        random.seed(0)
 
         self.game = Game(self.scene, self.infoPanel)
 
