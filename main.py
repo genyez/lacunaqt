@@ -17,6 +17,7 @@ class MainWindow(QFrame):
         self.calcBtn.clicked.connect(self.game.DoMath)
         self.resetBtn.clicked.connect(self.game.Restart)
         self.nextmoveBtn.clicked.connect(self.game.NextMove)
+        self.aimoveBtn.clicked.connect(self.game.AIMove)
 
     def _setupUI(self):
         self.setWindowTitle("Lacuna")
@@ -39,10 +40,12 @@ class MainWindow(QFrame):
         self.calcBtn = QPushButton("DoMath")
         self.infoPanel = QTextEdit()
         self.nextmoveBtn = QPushButton("Next Move")
+        self.aimoveBtn = QPushButton("AI Move")
 
         leftlayout.addWidget(self.infoPanel)
         leftlayout.addWidget(self.resetBtn)
         leftlayout.addWidget(self.calcBtn)
+        leftlayout.addWidget(self.aimoveBtn)
         leftlayout.addWidget(self.nextmoveBtn)
 
 def main():

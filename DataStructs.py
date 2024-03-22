@@ -15,6 +15,11 @@ class PlayerInfo(object):
         self.tokensleft = SUMTOKEN
         self.scoreboard = []
 
+class Token:
+    def __init__(self, pos, itype):
+        self.pos = pos
+        self.type = itype
+
 class Flower:
     def __init__(self, pos, itype):
         self.pos = pos
@@ -25,17 +30,31 @@ class Pool(object):
     def __init__(self):
         super().__init__()
         self.data = []
+        self.tokendata = []
+
+    def TryAddToken(self, x, y, ttype):
+        if self.IsConflict(x, y, TOKEN_WIDTH):
+            return False
+        else:
+            self.tokendata.append(Token([x,y], ttype))
+            return True
+
+    def GetTokenData(self):
+        return self.tokendata
 
     def GetData(self):
         return self.data
 
-    def IsConflict(self, x, y):
+    def IsConflict(self, x, y, width=FLOWER_WIDTH):
         if x == 0 == y:
             return True
         if math.dist((x, y) , (BOARD_WIDTH / 2, BOARD_WIDTH / 2)) >= BOARD_WIDTH / 2:
             return True
         for flower in self.data:
-            if math.dist((x,y), flower.pos) < FLOWER_WIDTH:
+            if math.dist((x,y), flower.pos) < FLOWER_WIDTH * 0.5 + width * 0.5:
+                return True
+        for token in self.tokendata:
+            if math.dist((x,y), token.pos) < TOKEN_WIDTH * 0.5 + width * 0.5:
                 return True
         return False
 
