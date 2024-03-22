@@ -85,6 +85,11 @@ class Board(object):
         self.pool = Pool()
         self.pool.Serve()
 
+    def TakeOutFlowers(self, index1, index2):
+        item1 = self.pool.data[index1]
+        item2 = self.pool.data[index2]
+        self.pool.data.remove(item1)
+        self.pool.data.remove(item2)
 
     def GetTokenData(self):
         return self.pool.GetTokenData()

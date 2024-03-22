@@ -68,16 +68,22 @@ class MyScene(QGraphicsScene):
     def mousePressEvent(self, event):
         self.Signal_Click.emit(event.scenePos().x() / SCALING_FACTOR, event.scenePos().y() / SCALING_FACTOR)
 
-    def Initialize(self, data):
+    def RefreshFlowers(self, data):
+        for item in self.fitems:
+            self.removeItem(item)
         self.fitems.clear()
-        self.titems.clear()
-        self.clear()
-        self.addEllipse(0,0,BOARD_WIDTH * SCALING_FACTOR, BOARD_WIDTH * SCALING_FACTOR)
         for flower in data:
             fitem = FlowerGraphicItem(flower)
             fitem.setPos(flower.pos[0] * SCALING_FACTOR, flower.pos[1] * SCALING_FACTOR)
             self.addItem(fitem)
             self.fitems.append(fitem)
+
+    def Initialize(self, data):
+        self.titems.clear()
+        self.clear()
+        self.addEllipse(0,0,BOARD_WIDTH * SCALING_FACTOR, BOARD_WIDTH * SCALING_FACTOR)
+        self.RefreshFlowers(data)
+
 
 
     def PutToken(self, ttype, pos):
@@ -122,6 +128,8 @@ class Game(object):
 
         success = self.board.pool.TryAddToken(targetpos[0], targetpos[1], self.currentturn)
         if success:
+            self.board.TakeOutFlowers(minline[2], minline[3])
+            self.scene.RefreshFlowers(self.board.GetPoolData())
             self.scene.PutToken(self.currentturn, (targetpos[0], targetpos[1]))
 
     def Output(self, text):
@@ -143,39 +151,42 @@ class Game(object):
 
     def DoMath(self):
         self.scene.ClearLines()
+
         self.Output("Calculating!")
         pooldata = self.board.GetPoolData()
         tokendata = self.board.GetTokenData()
         validlines = []
         # find all lines
-        for i in range(FLOWER_TYPES):
-            for j in range(FLOWER_COUNT):
-                index1 = i * FLOWER_COUNT + j
-                for k in range(1, FLOWER_COUNT):
-                    index2 = i * FLOWER_COUNT + k
-                    p1 = np.asarray(pooldata[index1].pos)
-                    p2 = np.asarray(pooldata[index2].pos)
-                    n12 = np.linalg.norm(p1 - p2)
-                    suc = True
-                    def _lacunain(datas, r):
-                        for pindex, p in enumerate(datas):
-                            if pindex == index1 or pindex == index2:
-                                continue
-                            p3 = np.asarray(p.pos)
-                            if np.dot(p2 - p1, p3 - p1) <= 0:
-                                continue
-                            if np.dot(p1 - p2, p3 - p2) <= 0:
-                                continue
-                            d = np.abs(np.linalg.norm(np.cross(p2 - p1, p1 - p3)) / n12)
-                            if d < r:
-                                suc = False
-                                break
-                    # tokens lacuna
-                    _lacunain(tokendata, TOKEN_WIDTH*0.5)
-                    # flowers lacuna
-                    _lacunain(pooldata, FLOWER_WIDTH * 0.5)
-                    if suc:
-                        validlines.append((pooldata[index1].pos, pooldata[index2].pos))
+        for i in range(len(pooldata)):
+            for j in range(i + 1, len(pooldata)):
+                index1 = i
+                index2 = j
+                if pooldata[index1].type != pooldata[index2].type:
+                    break
+                p1 = np.asarray(pooldata[index1].pos)
+                p2 = np.asarray(pooldata[index2].pos)
+                n12 = np.linalg.norm(p1 - p2)
+                suc = True
+                def _lacunain(datas, r):
+                    nonlocal suc
+                    for pindex, p in enumerate(datas):
+                        if pindex == index1 or pindex == index2:
+                            continue
+                        p3 = np.asarray(p.pos)
+                        if np.dot(p2 - p1, p3 - p1) <= 0:
+                            continue
+                        if np.dot(p1 - p2, p3 - p2) <= 0:
+                            continue
+                        d = np.abs(np.linalg.norm(np.cross(p2 - p1, p1 - p3)) / n12)
+                        if d < r:
+                            suc = False
+                            break
+                # tokens lacuna
+                _lacunain(tokendata, TOKEN_WIDTH*0.5)
+                # flowers lacuna
+                _lacunain(pooldata, FLOWER_WIDTH * 0.5)
+                if suc:
+                    validlines.append((pooldata[index1].pos, pooldata[index2].pos, index1, index2))
 
         self.validlines = validlines
         self.Output("Mathdone! %d" % len(validlines))
