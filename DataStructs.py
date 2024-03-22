@@ -86,5 +86,8 @@ class Board(object):
         self.pool.Serve()
 
 
+    def GetTokenData(self):
+        return self.pool.GetTokenData()
+
     def GetPoolData(self):
         return self.pool.GetData()

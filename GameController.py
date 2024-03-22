@@ -50,15 +50,21 @@ class MyScene(QGraphicsScene):
         super().__init__()
         self.fitems = []
         self.titems = []
+        self.lines = []
         self.setSceneRect(0,0,BOARD_WIDTH * SCALING_FACTOR, BOARD_WIDTH * SCALING_FACTOR)
         self.addEllipse(0,0,BOARD_WIDTH * SCALING_FACTOR, BOARD_WIDTH * SCALING_FACTOR)
         self.linepen = QPen(QColor(100,100,100))
         self.linepen.setStyle(Qt.PenStyle.DotLine)
 
+    def ClearLines(self):
+        for line in self.lines:
+            self.removeItem(line)
+        self.lines.clear()
+
     def AddLines(self, data):
         for line in data:
-            self.addLine(line[0][0]* SCALING_FACTOR,line[0][1]* SCALING_FACTOR,line[1][0]* SCALING_FACTOR,line[1][1]* SCALING_FACTOR, self.linepen)
-
+            line = self.addLine(line[0][0]* SCALING_FACTOR,line[0][1]* SCALING_FACTOR,line[1][0]* SCALING_FACTOR,line[1][1]* SCALING_FACTOR, self.linepen)
+            self.lines.append(line)
     def mousePressEvent(self, event):
         self.Signal_Click.emit(event.scenePos().x() / SCALING_FACTOR, event.scenePos().y() / SCALING_FACTOR)
 
@@ -91,10 +97,32 @@ class Game(object):
         self.outputtext = outputtext
         self.scene.Signal_Click.connect(self.OnClick)
 
+    def point2linedis(self, p1, p2, p3):
+        if np.dot(p2 - p1, p3 - p1) <= 0:
+            return False
+        if np.dot(p1 - p2, p3 - p2) <= 0:
+            return False
+        return np.abs(np.linalg.norm(np.cross(p2 - p1, p1 - p3)) / np.linalg.norm(p1 - p2))
+
     def OnClick(self, x, y):
-        success = self.board.pool.TryAddToken(x, y, self.currentturn)
+        # get nearest pos in valid lines to put token
+        mindis = 9999
+        minline = None
+        p3 = np.asarray((x, y))
+        for line in self.validlines:
+            dis = self.point2linedis(np.asarray(line[0]), np.asarray(line[1]), p3)
+            if dis is not False:
+                if dis < mindis:
+                    minline = line
+                    mindis = dis
+        p1 = np.asarray(minline[0])
+        p2 = np.asarray(minline[1])
+        n = (p2-p1) / np.linalg.norm(p2-p1,2)
+        targetpos = p1 + n*np.dot(p3-p1,n)
+
+        success = self.board.pool.TryAddToken(targetpos[0], targetpos[1], self.currentturn)
         if success:
-            self.scene.PutToken(self.currentturn, (x, y))
+            self.scene.PutToken(self.currentturn, (targetpos[0], targetpos[1]))
 
     def Output(self, text):
         if self.outputtext:
@@ -114,8 +142,10 @@ class Game(object):
         self.Output("AIMove!")
 
     def DoMath(self):
+        self.scene.ClearLines()
         self.Output("Calculating!")
         pooldata = self.board.GetPoolData()
+        tokendata = self.board.GetTokenData()
         validlines = []
         # find all lines
         for i in range(FLOWER_TYPES):
@@ -127,18 +157,23 @@ class Game(object):
                     p2 = np.asarray(pooldata[index2].pos)
                     n12 = np.linalg.norm(p1 - p2)
                     suc = True
-                    for pindex, p in enumerate(pooldata):
-                        if pindex == index1 or pindex == index2:
-                            continue
-                        p3 = np.asarray(p.pos)
-                        if np.dot(p2-p1, p3-p1) <= 0:
-                            continue
-                        if np.dot(p1-p2, p3-p2) <= 0:
-                            continue
-                        d = np.abs(np.linalg.norm(np.cross(p2-p1, p1-p3)) / n12)
-                        if d < FLOWER_WIDTH * 0.5:
-                            suc = False
-                            break
+                    def _lacunain(datas, r):
+                        for pindex, p in enumerate(datas):
+                            if pindex == index1 or pindex == index2:
+                                continue
+                            p3 = np.asarray(p.pos)
+                            if np.dot(p2 - p1, p3 - p1) <= 0:
+                                continue
+                            if np.dot(p1 - p2, p3 - p2) <= 0:
+                                continue
+                            d = np.abs(np.linalg.norm(np.cross(p2 - p1, p1 - p3)) / n12)
+                            if d < r:
+                                suc = False
+                                break
+                    # tokens lacuna
+                    _lacunain(tokendata, TOKEN_WIDTH*0.5)
+                    # flowers lacuna
+                    _lacunain(pooldata, FLOWER_WIDTH * 0.5)
                     if suc:
                         validlines.append((pooldata[index1].pos, pooldata[index2].pos))
 
