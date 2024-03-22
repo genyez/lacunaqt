@@ -7,6 +7,8 @@ FLOWER_COUNT = 7
 BOARD_WIDTH = 60
 TOKEN_WIDTH = 1
 FLOWER_WIDTH = 2
+SCORE_TO_WIN = 4
+SCORETYPES_TO_WIN = 4
 
 class PlayerInfo(object):
 
@@ -16,6 +18,19 @@ class PlayerInfo(object):
         self.scoreboard = []
         for i in range(FLOWER_TYPES):
             self.scoreboard.append(0)
+
+    def Scoring(self, flowertype, count=1):
+        self.scoreboard[flowertype] += count
+
+    def IsWon(self):
+        scoring_type_count = 0
+        for score in self.scoreboard:
+            if score >= SCORE_TO_WIN:
+                scoring_type_count += 1
+        if scoring_type_count >= SCORETYPES_TO_WIN:
+            return True
+        else:
+            return False
 
     def ToString(self):
         return "Tokens left: %s \n scoring: %s\n" % (self.tokensleft, str(self.scoreboard))
@@ -93,7 +108,7 @@ class Board(object):
     def UpdateScoreByTake(self, flowertype, playerindex):
         info = self.playerinfos[playerindex]
         info.tokensleft -= 1
-        info.scoreboard[flowertype] += 2
+        info.Scoring(flowertype, 2)
 
     def TakeOutFlowers(self, index1, index2, playerindex):
         item1 = self.pool.data[index1]

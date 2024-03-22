@@ -110,6 +110,11 @@ class Game(object):
             return False
         return np.abs(np.linalg.norm(np.cross(p2 - p1, p1 - p3)) / np.linalg.norm(p1 - p2))
 
+    def pointdis(self, p1, p2):
+        p1 = np.asarray(p1)
+        p2 = np.asarray(p2)
+        return np.linalg.norm(p2 - p1)
+
     def OnClick(self, x, y):
         # get nearest pos in valid lines to put token
         mindis = 9999
@@ -134,6 +139,12 @@ class Game(object):
 
             self.Output(self.board.GetScoreData())
 
+            finished = self.FinishUp()
+
+            self.DoMath()
+            if not finished:
+                self.NextMove()
+
     def Output(self, text):
         if self.outputtext:
             self.outputtext.append("\n%s" % str(text))
@@ -145,16 +156,42 @@ class Game(object):
         self.scene.Initialize(self.board.GetPoolData())
 
     def NextMove(self):
-        self.Output("NextMove!")
         self.currentturn = 1 - self.currentturn
+        self.Output("Now is Player%d's turn" % (self.currentturn+1))
 
     def AIMove(self):
         self.Output("AIMove!")
 
+    def FinishUp(self):
+        # not finished yet
+        if self.board.playerinfos[0].tokensleft > 0 or self.board.playerinfos[1].tokensleft > 0:
+            # self.Output("We are not finished yet!")
+            return False
+        pooldata = self.board.GetPoolData()
+        tokendata = self.board.GetTokenData()
+        for flower in pooldata:
+            mindis = 9999
+            belongsto = -1
+            for token in tokendata:
+                dis = self.pointdis(token.pos, flower.pos)
+                if dis < mindis:
+                    mindis = dis
+                    belongsto = token.type
+            self.board.playerinfos[belongsto].Scoring(flower.type)
+
+        self.Output(self.board.GetScoreData())
+        if self.board.playerinfos[0].IsWon():
+            wonid = 1
+        else:
+            wonid = 2
+        self.Output("Player %d Wins!" % wonid)
+        return True
+
     def DoMath(self):
+        self.scene.invalidate()
         self.scene.ClearLines()
 
-        self.Output("Calculating!")
+        # self.Output("Calculating!")
         pooldata = self.board.GetPoolData()
         tokendata = self.board.GetTokenData()
         validlines = []
@@ -191,6 +228,6 @@ class Game(object):
                     validlines.append((pooldata[index1].pos, pooldata[index2].pos, index1, index2))
 
         self.validlines = validlines
-        self.Output("Mathdone! %d" % len(validlines))
+        # self.Output("Mathdone! %d" % len(validlines))
         self.scene.AddLines(self.validlines)
 
