@@ -4,9 +4,8 @@
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 from PySide6.QtWidgets import QApplication, QFrame, QGraphicsScene, QGraphicsView, QPushButton, QLabel, QTextEdit, QHBoxLayout, QVBoxLayout
 import sys
-from GameController import Game
-BOARD_WIDTH = 60
-TOKEN_WIDTH = 2
+from GameController import Game, MyScene, BOARD_WIDTH
+from PySide6.QtCore import Qt, QRectF
 
 class MainWindow(QFrame):
     def __init__(self):
@@ -31,8 +30,10 @@ class MainWindow(QFrame):
         self.view.setFixedSize(600, 600)
         layout.addWidget(self.view)
 
-        self.scene = QGraphicsScene()
+        self.scene = MyScene()
         self.view.setScene(self.scene)
+        self.view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         self.resetBtn = QPushButton("Restart")
         self.calcBtn = QPushButton("DoMath")
