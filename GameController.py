@@ -128,9 +128,11 @@ class Game(object):
 
         success = self.board.pool.TryAddToken(targetpos[0], targetpos[1], self.currentturn)
         if success:
-            self.board.TakeOutFlowers(minline[2], minline[3])
+            self.board.TakeOutFlowers(minline[2], minline[3], self.currentturn)
             self.scene.RefreshFlowers(self.board.GetPoolData())
             self.scene.PutToken(self.currentturn, (targetpos[0], targetpos[1]))
+
+            self.Output(self.board.GetScoreData())
 
     def Output(self, text):
         if self.outputtext:

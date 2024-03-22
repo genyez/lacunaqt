@@ -14,6 +14,11 @@ class PlayerInfo(object):
         super().__init__()
         self.tokensleft = SUMTOKEN
         self.scoreboard = []
+        for i in range(FLOWER_TYPES):
+            self.scoreboard.append(0)
+
+    def ToString(self):
+        return "Tokens left: %s \n scoring: %s\n" % (self.tokensleft, str(self.scoreboard))
 
 class Token:
     def __init__(self, pos, itype):
@@ -85,14 +90,24 @@ class Board(object):
         self.pool = Pool()
         self.pool.Serve()
 
-    def TakeOutFlowers(self, index1, index2):
+    def UpdateScoreByTake(self, flowertype, playerindex):
+        info = self.playerinfos[playerindex]
+        info.tokensleft -= 1
+        info.scoreboard[flowertype] += 2
+
+    def TakeOutFlowers(self, index1, index2, playerindex):
         item1 = self.pool.data[index1]
         item2 = self.pool.data[index2]
         self.pool.data.remove(item1)
         self.pool.data.remove(item2)
+
+        self.UpdateScoreByTake(item1.type, playerindex)
 
     def GetTokenData(self):
         return self.pool.GetTokenData()
 
     def GetPoolData(self):
         return self.pool.GetData()
+
+    def GetScoreData(self):
+        return "Player1:\n%s \nPlayer2:\n%s\n" % (self.playerinfos[0].ToString(), self.playerinfos[1].ToString())

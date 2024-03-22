@@ -21,6 +21,11 @@ class MainWindow(QFrame):
         self.nextmoveBtn.clicked.connect(self.game.NextMove)
         self.aimoveBtn.clicked.connect(self.game.AIMove)
 
+        self.clearBtn.clicked.connect(self.ClearInfo)
+
+    def ClearInfo(self):
+        self.infoPanel.clear()
+
     def _setupUI(self):
         self.setWindowTitle("Lacuna")
         layout = QHBoxLayout()
@@ -43,12 +48,14 @@ class MainWindow(QFrame):
         self.infoPanel = QTextEdit()
         self.nextmoveBtn = QPushButton("Next Move")
         self.aimoveBtn = QPushButton("AI Move")
+        self.clearBtn = QPushButton("Clear")
 
         leftlayout.addWidget(self.infoPanel)
         leftlayout.addWidget(self.resetBtn)
         leftlayout.addWidget(self.calcBtn)
         leftlayout.addWidget(self.aimoveBtn)
         leftlayout.addWidget(self.nextmoveBtn)
+        leftlayout.addWidget(self.clearBtn)
 
 def main():
     # Use a breakpoint in the code line below to debug your script.
