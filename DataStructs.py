@@ -140,6 +140,28 @@ class Board(object):
         info.tokensleft -= 1
         info.Scoring(flowertype, 2)
 
+    def CurrentRole(self):
+        if self.playerinfos[0].tokensleft < self.playerinfos[1].tokensleft:
+            return 1
+        else:
+            return 0
+
+    def TakeMove(self, pos, line):
+        role = self.CurrentRole()
+        success = self.pool.TryAddToken(pos[0], pos[1], role)
+        if success:
+            self.TakeOutFlowers(line[2], line[3], role)
+        return success
+
+    def SuccessCheck(self):
+        if self.playerinfos[0].tokensleft == self.playerinfos[1].tokensleft == 0:
+            if self.playerinfos[0].IsWon():
+                return 0
+            else:
+                return 1
+        else:
+            return False
+
     def TakeOutFlowers(self, index1, index2, playerindex):
         item1 = self.pool.data[index1]
         item2 = self.pool.data[index2]

@@ -78,6 +78,28 @@ class MyScene(QGraphicsScene):
             self.addItem(fitem)
             self.fitems.append(fitem)
 
+    def RefreshAll(self, flowerdata, tokendata, validlines):
+        self.invalidate()
+        for item in self.fitems:
+            self.removeItem(item)
+        for item in self.titems:
+            self.removeItem(item)
+        self.ClearLines()
+        self.titems.clear()
+        self.fitems.clear()
+        self.AddLines(validlines)
+        for flower in flowerdata:
+            fitem = FlowerGraphicItem(flower)
+            fitem.setPos(flower.pos[0] * SCALING_FACTOR, flower.pos[1] * SCALING_FACTOR)
+            self.addItem(fitem)
+            self.fitems.append(fitem)
+        for token in tokendata:
+            titem = TokenGraphicItem(token.type)
+            titem.setPos(token.pos[0] * SCALING_FACTOR, token.pos[1] * SCALING_FACTOR)
+            self.addItem(titem)
+            self.titems.append(titem)
+
+
     def Initialize(self, data):
         self.titems.clear()
         self.clear()
@@ -131,19 +153,15 @@ class Game(object):
         n = (p2-p1) / np.linalg.norm(p2-p1,2)
         targetpos = p1 + n*np.dot(p3-p1,n)
 
-        success = self.board.pool.TryAddToken(targetpos[0], targetpos[1], self.currentturn)
+        success = self.board.TakeMove(targetpos, minline)
         if success:
-            self.board.TakeOutFlowers(minline[2], minline[3], self.currentturn)
-            self.scene.RefreshFlowers(self.board.GetPoolData())
-            self.scene.PutToken(self.currentturn, (targetpos[0], targetpos[1]))
+            self.validlines = self.CalcValidLines(self.board)
+            self.scene.RefreshAll(self.board.GetPoolData(), self.board.GetTokenData(), self.validlines)
 
             self.Output(self.board.GetScoreData())
 
-            finished = self.FinishUp()
+            self.FinishUp()
 
-            self.DoMath()
-            if not finished:
-                self.NextMove()
 
     def Output(self, text):
         if self.outputtext:
@@ -160,7 +178,52 @@ class Game(object):
         self.Output("Now is Player%d's turn" % (self.currentturn+1))
 
     def AIMove(self):
-        self.Output("AIMove!")
+        ret = self.Solve(self.board)
+        if ret is False:
+            self.Output("AI surrender!")
+        else:
+            self.board.TakeMove(ret[0], ret[1])
+            self.validlines = self.CalcValidLines(self.board)
+            self.scene.RefreshAll(self.board.GetPoolData(), self.board.GetTokenData(), self.validlines)
+
+    @staticmethod
+    def MakePossiblePosInLine(p1, p2):
+        GAP = TOKEN_WIDTH
+        poses = []
+        return poses
+
+    @staticmethod
+    def Solve(board):
+        # calculate the valid lines
+        validlines = Game.CalcValidLines(board)
+        role = board.CurrentRole()
+        # find a possible line to place
+        for line in validlines:
+            possibleposes = Game.MakePossiblePosInLine(line[0], line[1])
+            for pos in possibleposes:
+                newboard = board.Clone()
+                success = newboard.TakeMove(pos, line)
+                if success:
+                    ret = newboard.SuccessCheck()
+                    if ret is not False:
+                        if ret == role:
+                            # finally!
+                            return pos, line
+                        else:
+                            # complete but failed
+                            pass
+                    else:
+                        # not completed
+                        iter_ret = Game.Solve(newboard)
+                        if iter_ret is False:
+                            # opponent cannot win, then I won for sure
+                            return pos, line
+                        else:
+                            # opponent can win, maybe another try
+                            pass
+        # done my best, no can do, I surrender
+        return False
+
 
     def FinishUp(self):
         # not finished yet
@@ -187,13 +250,10 @@ class Game(object):
         self.Output("Player %d Wins!" % wonid)
         return True
 
-    def DoMath(self):
-        self.scene.invalidate()
-        self.scene.ClearLines()
-
-        # self.Output("Calculating!")
-        pooldata = self.board.GetPoolData()
-        tokendata = self.board.GetTokenData()
+    @staticmethod
+    def CalcValidLines(board):
+        pooldata = board.GetPoolData()
+        tokendata = board.GetTokenData()
         validlines = []
         # find all lines
         for i in range(len(pooldata)):
@@ -206,6 +266,7 @@ class Game(object):
                 p2 = np.asarray(pooldata[index2].pos)
                 n12 = np.linalg.norm(p1 - p2)
                 suc = True
+
                 def _lacunain(datas, r):
                     nonlocal suc
                     for pindex, p in enumerate(datas):
@@ -220,14 +281,20 @@ class Game(object):
                         if d < r:
                             suc = False
                             break
+
                 # tokens lacuna
-                _lacunain(tokendata, TOKEN_WIDTH*0.5)
+                _lacunain(tokendata, TOKEN_WIDTH * 0.5)
                 # flowers lacuna
                 _lacunain(pooldata, FLOWER_WIDTH * 0.5)
                 if suc:
                     validlines.append((pooldata[index1].pos, pooldata[index2].pos, index1, index2))
+        return validlines
 
-        self.validlines = validlines
+    def DoMath(self):
+        self.scene.invalidate()
+        self.scene.ClearLines()
+
+        self.validlines = self.CalcValidLines(self.board)
         # self.Output("Mathdone! %d" % len(validlines))
         self.scene.AddLines(self.validlines)
 
