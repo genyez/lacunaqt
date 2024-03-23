@@ -132,7 +132,8 @@ class Game(object):
             return False
         return np.abs(np.linalg.norm(np.cross(p2 - p1, p1 - p3)) / np.linalg.norm(p1 - p2))
 
-    def pointdis(self, p1, p2):
+    @staticmethod
+    def pointdis(p1, p2):
         p1 = np.asarray(p1)
         p2 = np.asarray(p2)
         return np.linalg.norm(p2 - p1)
@@ -188,8 +189,18 @@ class Game(object):
 
     @staticmethod
     def MakePossiblePosInLine(p1, p2):
-        GAP = TOKEN_WIDTH
+        GAP = TOKEN_WIDTH * 2
         poses = []
+        t = FLOWER_WIDTH * 0.5 + TOKEN_WIDTH * 0.6
+        distance = Game.pointdis(p1, p2)
+        p1 = np.asarray(p1, dtype=np.float32)
+        p2 = np.asarray(p2, dtype=np.float32)
+        direction = p2 - p1
+        direction /= np.linalg.norm(direction)
+        while t < distance - FLOWER_WIDTH * 0.5 - TOKEN_WIDTH * 0.6:
+            newpos = p1 + direction * t
+            poses.append((newpos[0], newpos[1]))
+            t += GAP
         return poses
 
     @staticmethod
@@ -198,13 +209,18 @@ class Game(object):
         validlines = Game.CalcValidLines(board)
         role = board.CurrentRole()
         # find a possible line to place
-        for line in validlines:
+        if board.playerinfos[0].tokensleft>0:
+            print("Solve starts round: %d,%d, validlines:%d" % (board.playerinfos[0].tokensleft, board.playerinfos[1].tokensleft, len(validlines)))
+        for lineindex, line in enumerate(validlines):
+            if board.playerinfos[0].tokensleft>0:
+
+                print("try line %d" % lineindex)
             possibleposes = Game.MakePossiblePosInLine(line[0], line[1])
             for pos in possibleposes:
                 newboard = board.Clone()
                 success = newboard.TakeMove(pos, line)
                 if success:
-                    ret = newboard.SuccessCheck()
+                    ret = newboard.FinishUp()
                     if ret is not False:
                         if ret == role:
                             # finally!
@@ -222,6 +238,7 @@ class Game(object):
                             # opponent can win, maybe another try
                             pass
         # done my best, no can do, I surrender
+        print("Do my best")
         return False
 
 

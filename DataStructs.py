@@ -1,6 +1,7 @@
 import random
 import math
 import copy
+import numpy as np
 
 SUMTOKEN = 6
 FLOWER_TYPES = 7
@@ -74,7 +75,7 @@ class Pool(object):
     def Clone(self):
         pool = Pool()
         pool.data = copy.deepcopy(self.data)
-        pool.tokendata = copy.deepcopy(self.data)
+        pool.tokendata = copy.deepcopy(self.tokendata)
         return pool
 
     def TryAddToken(self, x, y, ttype):
@@ -152,6 +153,32 @@ class Board(object):
         if success:
             self.TakeOutFlowers(line[2], line[3], role)
         return success
+
+    @staticmethod
+    def pointdis(p1, p2):
+        p1 = np.asarray(p1)
+        p2 = np.asarray(p2)
+        return np.linalg.norm(p2 - p1)
+    def FinishUp(self):
+        if self.playerinfos[0].tokensleft > 0 or self.playerinfos[1].tokensleft > 0:
+            # self.Output("We are not finished yet!")
+            return False
+        pooldata = self.GetPoolData()
+        tokendata = self.GetTokenData()
+        for flower in pooldata:
+            mindis = 9999
+            belongsto = -1
+            for token in tokendata:
+                dis = self.pointdis(token.pos, flower.pos)
+                if dis < mindis:
+                    mindis = dis
+                    belongsto = token.type
+            self.playerinfos[belongsto].Scoring(flower.type)
+
+        if self.playerinfos[0].IsWon():
+            return 0
+        else:
+            return 1
 
     def SuccessCheck(self):
         if self.playerinfos[0].tokensleft == self.playerinfos[1].tokensleft == 0:
